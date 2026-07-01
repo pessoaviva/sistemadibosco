@@ -33,20 +33,31 @@ que originou o sistema) e hoje serve a sorveteria Dibosco de fato.
 
 ## Login
 
-- Autenticação via **Supabase Auth** (e-mail/senha), tela `#telaLogin`.
+- A tela de login (`#telaLogin`) aparece nos **dois modos**. O campo é
+  "Usuário" (não e-mail), para aceitar logins simples como `Dibosco`.
+- **Conta padrão** (constantes no topo do script): `USUARIO_PADRAO = 'Dibosco'`
+  e `SENHA_PADRAO = 'Dibosco@2026'`. A constante `DOMINIO_LOGIN` (`dibosco.app`)
+  é usada só para transformar o usuário em e-mail no Supabase
+  (`usuarioParaEmail('Dibosco')` → `dibosco@dibosco.app`).
 - Funções principais:
-  - `entrar()` — faz login ou cadastro (`signInWithPassword` /
-    `signUp`), dependendo do modo (`modoCadastro`).
-  - `sair()` — chama `sb.auth.signOut()` (quando em modo nuvem) e recarrega
-    a página.
-  - `iniciar()` — ponto de entrada chamado no fim do script. Em modo nuvem,
-    verifica sessão existente (`sb.auth.getSession()`) e assina
-    `onAuthStateChange`; em modo local, pula login e carrega os dados
-    diretamente.
-  - `aposLogin(session)` — roda depois de autenticar: mostra o e-mail do
-    usuário, chama `carregarNuvem()`, esconde a tela de login e renderiza.
-- **Em modo local não existe login** — o app abre direto nos dados salvos no
-  navegador.
+  - `entrar()` — em **modo nuvem** faz login/cadastro no Supabase Auth
+    (`signInWithPassword` / `signUp`), convertendo o usuário em e-mail; em
+    **modo local** confere as credenciais contra a conta padrão e marca a
+    sessão em `sessionStorage[SESSAO_LOCAL]`.
+  - `entrarLocalOk()` — abre o app em modo local (carrega `dados`, esconde o
+    login, renderiza).
+  - `sair()` — em nuvem chama `sb.auth.signOut()`; em local limpa a sessão;
+    depois recarrega a página.
+  - `iniciar()` — ponto de entrada. Em nuvem verifica `sb.auth.getSession()` e
+    assina `onAuthStateChange`; em local, se houver sessão salva entra direto,
+    senão mostra o login.
+  - `aposLogin(session)` — roda após autenticar na nuvem: mostra o usuário,
+    chama `carregarNuvem()`, esconde o login e renderiza.
+- **Segurança**: em modo local a senha padrão fica visível no código (é só um
+  cadeado simples para demonstração). A segurança real vem do **modo nuvem**
+  (Supabase Auth + RLS). Ao configurar o Supabase, crie a conta `Dibosco`
+  (e-mail `dibosco@dibosco.app`) com a mesma senha, ou uma conta por
+  funcionário.
 
 ## Banco de dados (Supabase)
 

@@ -230,12 +230,12 @@
     <div class="login-erro" id="loginErro"></div>
     <div class="login-ok" id="loginOk"></div>
 
-    <div class="campo"><label for="loginEmail">E-mail</label><input type="email" id="loginEmail" placeholder="voce@dibosco.com" autocomplete="username" /></div>
+    <div class="campo"><label for="loginEmail">Usuário</label><input type="text" id="loginEmail" placeholder="Dibosco" autocomplete="username" /></div>
     <div class="campo"><label for="loginSenha">Senha</label><input type="password" id="loginSenha" placeholder="••••••••" autocomplete="current-password" /></div>
 
     <button class="btn" id="btnEntrar" onclick="entrar()">Entrar</button>
 
-    <div class="login-alt" id="alternaModo">
+    <div class="login-alt" id="alternaModo" style="display:none;">
       Ainda não tem conta? <a onclick="alternarModoLogin(true)">Criar conta</a>
     </div>
   </div>
@@ -474,6 +474,18 @@
 const SUPABASE_URL = 'COLE_AQUI_SUA_URL';        // ex: https://abcd1234.supabase.co
 const SUPABASE_ANON_KEY = 'COLE_AQUI_SUA_CHAVE'; // chave "anon public"
 
+/* ===========================================================
+   1b) CONTA DE ACESSO PADRÃO
+   Usuário e senha já criados. Funcionam mesmo sem o Supabase
+   configurado (modo local). Quando o Supabase estiver ligado,
+   o mesmo usuário "Dibosco" vira o e-mail "dibosco@<DOMINIO_LOGIN>".
+   Para trocar a senha depois, altere aqui (modo local) ou pelo
+   painel do Supabase (modo nuvem).
+   =========================================================== */
+const USUARIO_PADRAO = 'Dibosco';
+const SENHA_PADRAO = 'Dibosco@2026';
+const DOMINIO_LOGIN = 'dibosco.app'; // usado só para montar o e-mail no Supabase
+
 const nuvemAtiva = () =>
   typeof supabase !== 'undefined' &&
   SUPABASE_URL.startsWith('http') &&
@@ -483,6 +495,7 @@ const sb = nuvemAtiva() ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 /* ---------- Estado ---------- */
 const CHAVE = 'dibosco_dados_v1';
+const SESSAO_LOCAL = 'dibosco_sessao'; // marca que o login local foi feito
 let dados = { maquina: null, vendas: [], materiaPrima: [], manutencao: [], seq: 100 };
 let subDespesaAtual = 'materia';
 let mesSelecionado = null;
@@ -596,27 +609,52 @@ function alternarModoLogin(cadastro) {
     : 'Ainda não tem conta? <a onclick="alternarModoLogin(true)">Criar conta</a>';
 }
 
+/* Transforma "Dibosco" em "dibosco@dibosco.app" para o Supabase.
+   Se o usuário já digitar um e-mail completo, mantém como está. */
+function usuarioParaEmail(u) {
+  return u.includes('@') ? u : `${u.toLowerCase()}@${DOMINIO_LOGIN}`;
+}
+
 async function entrar() {
-  if (!nuvemAtiva()) return; // em modo local não há login
-  const email = document.getElementById('loginEmail').value.trim();
+  const usuario = document.getElementById('loginEmail').value.trim();
   const senha = document.getElementById('loginSenha').value;
-  if (!email || !senha) { mostrarErroLogin('Preencha e-mail e senha.'); return; }
+  if (!usuario || !senha) { mostrarErroLogin('Preencha usuário e senha.'); return; }
   const btn = document.getElementById('btnEntrar');
   btn.disabled = true;
   try {
-    if (modoCadastro) {
-      const { error } = await sb.auth.signUp({ email, password: senha });
-      if (error) { mostrarErroLogin(traduzErro(error.message)); return; }
-      mostrarOkLogin('Conta criada! Se o sistema pedir, confirme seu e-mail. Agora você já pode entrar.');
-      alternarModoLogin(false);
+    if (nuvemAtiva()) {
+      const email = usuarioParaEmail(usuario);
+      if (modoCadastro) {
+        const { error } = await sb.auth.signUp({ email, password: senha });
+        if (error) { mostrarErroLogin(traduzErro(error.message)); return; }
+        mostrarOkLogin('Conta criada! Agora você já pode entrar.');
+        alternarModoLogin(false);
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+        if (error) { mostrarErroLogin(traduzErro(error.message)); return; }
+        // onAuthStateChange cuida de carregar e mostrar o app
+      }
     } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password: senha });
-      if (error) { mostrarErroLogin(traduzErro(error.message)); return; }
-      // onAuthStateChange cuida de carregar e mostrar o app
+      // Modo local: confere a conta padrão (Dibosco / Dibosco@2026)
+      if (usuario.toLowerCase() === USUARIO_PADRAO.toLowerCase() && senha === SENHA_PADRAO) {
+        sessionStorage.setItem(SESSAO_LOCAL, '1');
+        entrarLocalOk();
+      } else {
+        mostrarErroLogin('Usuário ou senha incorretos.');
+      }
     }
   } finally {
     btn.disabled = false;
   }
+}
+
+/* Entra no app em modo local (conta padrão) */
+function entrarLocalOk() {
+  dados = carregarLocal();
+  document.getElementById('usuarioBox').style.display = 'flex';
+  document.getElementById('usuarioEmail').textContent = USUARIO_PADRAO;
+  esconderLogin();
+  render();
 }
 
 function traduzErro(msg) {
@@ -630,12 +668,14 @@ function traduzErro(msg) {
 
 async function sair() {
   if (nuvemAtiva()) { await sb.auth.signOut(); }
+  else { sessionStorage.removeItem(SESSAO_LOCAL); }
   location.reload();
 }
 
 async function aposLogin(session) {
+  const em = session?.user?.email || '';
   document.getElementById('usuarioBox').style.display = 'flex';
-  document.getElementById('usuarioEmail').textContent = session?.user?.email || '';
+  document.getElementById('usuarioEmail').textContent = em.split('@')[0] || em;
   await carregarNuvem();
   esconderLogin();
   render();
@@ -653,11 +693,13 @@ async function iniciar() {
       else if (evento === 'SIGNED_OUT') { mostrarLogin(); }
     });
   } else {
-    // Modo local (sem Supabase configurado): sem login, dados no navegador
-    dados = carregarLocal();
-    document.getElementById('usuarioBox').style.display = 'none';
-    esconderLogin();
-    render();
+    // Modo local (sem Supabase): login com a conta padrão Dibosco
+    if (sessionStorage.getItem(SESSAO_LOCAL) === '1') {
+      entrarLocalOk();
+    } else {
+      document.getElementById('usuarioBox').style.display = 'none';
+      mostrarLogin();
+    }
   }
 }
 
