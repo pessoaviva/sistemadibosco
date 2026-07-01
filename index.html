@@ -212,10 +212,61 @@
   .login-local-aviso { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 10px; font-size: 12px; margin-top: 18px; }
 
   @media (max-width: 600px) {
+    /* Topo mais compacto */
+    header { padding: 0 14px; height: 58px; }
+    nav.abas { top: 58px; }
+    .logo { font-size: 16px; gap: 8px; }
+    .logo .icone { width: 32px; height: 32px; font-size: 16px; }
+    .topo-dir { gap: 8px; }
+    .status-maquina { padding: 8px; gap: 0; }
+    .status-maquina #textoMaquina { display: none; } /* no celular fica só o pontinho de status */
+    .usuario-box { gap: 6px; }
+    .usuario-box .email { display: none; }
+    .btn-sair { padding: 7px 12px; }
+
+    /* Abas com rolagem horizontal e sem cortar */
+    nav.abas { overflow-x: auto; padding: 0 8px; gap: 0; -webkit-overflow-scrolling: touch; }
+    nav.abas::-webkit-scrollbar { display: none; }
+    nav.abas button { padding: 14px 14px; font-size: 14px; white-space: nowrap; }
+
+    /* Conteúdo */
+    main { padding: 20px 14px 48px; }
+    .titulo-pg { font-size: 21px; }
+    .sub-pg { margin-bottom: 18px; }
     .linha-2 { grid-template-columns: 1fr; }
-    nav.abas { overflow-x: auto; }
-    .titulo-pg { font-size: 22px; }
-    .usuario-box .email { max-width: 90px; }
+
+    /* Cards */
+    .grid-cards { grid-template-columns: 1fr; gap: 12px; margin-bottom: 22px; }
+    .card { padding: 16px; }
+    .card .valor { font-size: 24px; }
+    .secao-titulo { margin: 22px 0 12px; }
+
+    /* Filtro de mês/ano ocupa a largura toda, dividido igualmente */
+    .barra-acao > div { width: 100%; }
+    .barra-acao > div .campo { flex: 1; }
+    #filtroMesNum, #filtroAno { min-width: 0 !important; width: 100%; }
+
+    /* Botões de ação em largura cheia (mais fáceis de tocar) */
+    .barra-acao { gap: 10px; }
+    .barra-acao > .btn { width: 100%; justify-content: center; }
+
+    /* Tabelas: cabem na largura da tela (texto quebra em 2 linhas se preciso),
+       mantendo a coluna de Valor sempre visível. O overflow-x fica como rede
+       de segurança. */
+    .painel { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    th, td { padding: 10px 8px; font-size: 13px; }
+    th:first-child, td:first-child { padding-left: 12px; }
+    .pill { padding: 3px 7px; font-size: 11px; }
+
+    /* Modais coladinhos nas bordas com respiro */
+    .overlay { padding: 12px; align-items: flex-end; }
+    .modal { max-width: 100%; border-radius: 18px 18px 0 0; }
+    .modal-rodape .btn { flex: 1; justify-content: center; }
+
+    /* Dias de vendas */
+    .dia-cabecalho { padding: 13px 14px; }
+    .dia-cabecalho .esq { gap: 8px; font-size: 14px; }
+    .badge-qtd { display: none; } /* economiza espaço; a contagem já aparece no corpo */
   }
 </style>
 </head>
