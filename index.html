@@ -109,6 +109,19 @@
 
   .secao-titulo { font-size: 18px; font-weight: 700; margin: 28px 0 14px; display: flex; align-items: center; gap: 8px; }
 
+  /* Gráficos comparativos (SVG puro, sem biblioteca externa) */
+  .grid-graficos { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-bottom: 28px; align-items: start; }
+  .grafico-card { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 20px; box-shadow: var(--sombra); }
+  .grafico-titulo { font-size: 12px; font-weight: 700; color: var(--cinza); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 14px; }
+  .grafico-card svg { width: 100%; height: auto; display: block; }
+  .grafico-vazio { padding: 30px 10px; text-align: center; color: var(--cinza); font-size: 14px; }
+  .barra-grupo:hover rect { opacity: .85; }
+  .legenda-donut { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .legenda-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .legenda-item .ponto { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legenda-item .lbl { flex: 1; color: var(--cinza); font-weight: 600; }
+  .legenda-item .val { font-weight: 700; }
+
   /* Tabelas / listas */
   .painel { background: #fff; border: 1px solid var(--borda); border-radius: 14px; box-shadow: var(--sombra); overflow: hidden; }
   table { width: 100%; border-collapse: collapse; }
@@ -240,6 +253,8 @@
     .card { padding: 16px; }
     .card .valor { font-size: 24px; }
     .secao-titulo { margin: 22px 0 12px; }
+    .grid-graficos { grid-template-columns: 1fr; gap: 12px; margin-bottom: 22px; }
+    .grafico-card { padding: 16px; }
 
     /* Filtro de mês/ano ocupa a largura toda, dividido igualmente */
     .barra-acao > div { width: 100%; }
@@ -362,6 +377,19 @@
       <div class="card">
         <div class="rotulo">Qtd. de vendas no mês</div>
         <div class="valor verde" id="rQtdVendas">0</div>
+      </div>
+    </div>
+
+    <div class="secao-titulo">Comparativo mensal</div>
+    <div class="grid-graficos">
+      <div class="grafico-card">
+        <div class="grafico-titulo">Faturamento x despesas — últimos 6 meses</div>
+        <div id="graficoBarras"></div>
+      </div>
+      <div class="grafico-card">
+        <div class="grafico-titulo">Formas de pagamento no mês</div>
+        <div id="graficoDonut"></div>
+        <div id="legendaDonut" class="legenda-donut"></div>
       </div>
     </div>
   </section>
@@ -766,6 +794,17 @@ const nomeMes = chave => {
 };
 const mesDe = iso => iso.slice(0,7);
 function escapar(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Desloca uma chave "aaaa-mm" em N meses (N pode ser negativo) */
+function deslocarMes(chave, delta) {
+  const [a, m] = chave.split('-').map(Number);
+  const d = new Date(a, (m - 1) + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}`;
+}
+const nomeMesAbrev = chave => {
+  const [a,m] = chave.split('-');
+  const abrev = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return `${abrev[+m-1]}/${a.slice(2)}`;
+};
 
 /* Datas/horas LOCAIS (corrige o bug do fuso: toISOString usa UTC) */
 function hoje() {
@@ -919,6 +958,104 @@ function alternarDia(chave) {
   render();
 }
 function pillClasse(m) { return ({ 'Pix':'pix','Crédito':'credito','Débito':'debito','Dinheiro':'dinheiro' })[m] || 'dinheiro'; }
+const metodoCor = { 'Pix':'#059669', 'Crédito':'#2563eb', 'Débito':'#7c3aed', 'Dinheiro':'#d97706' };
+
+/* ===========================================================
+   8b) GRÁFICOS COMPARATIVOS (SVG puro, sem biblioteca externa)
+   =========================================================== */
+
+/* Barras: faturamento x despesas dos últimos 6 meses (até o mês selecionado) */
+function graficoBarrasSvg(mesRef) {
+  const meses = [];
+  for (let i = 5; i >= 0; i--) meses.push(deslocarMes(mesRef, -i));
+
+  const pontos = meses.map(chave => {
+    const fat = dados.vendas.filter(v => mesDe(v.data) === chave).reduce((s,v) => s + v.valor, 0);
+    const desp = dados.materiaPrima.filter(x => mesDe(x.data) === chave).reduce((s,x) => s + x.preco, 0)
+               + dados.manutencao.filter(x => mesDe(x.data) === chave).reduce((s,x) => s + x.custo, 0);
+    return { chave, fat, desp, lucro: fat - desp };
+  });
+
+  const semDados = pontos.every(p => p.fat === 0 && p.desp === 0);
+  if (semDados) return '<div class="grafico-vazio">Sem lançamentos nos últimos 6 meses.</div>';
+
+  const maxValor = Math.max(1, ...pontos.map(p => Math.max(p.fat, p.desp)));
+  const larguraTotal = 640, alturaTotal = 240;
+  const alturaBarras = 160, baseY = 200;
+  const larguraGrupo = larguraTotal / pontos.length;
+  const larguraBarra = 22, gapBarra = 6;
+
+  const barras = pontos.map((p, i) => {
+    const cx = i * larguraGrupo + larguraGrupo / 2;
+    const hFat = (p.fat / maxValor) * alturaBarras;
+    const hDesp = (p.desp / maxValor) * alturaBarras;
+    const xFat = cx - larguraBarra - gapBarra / 2;
+    const xDesp = cx + gapBarra / 2;
+    const corLucro = p.lucro >= 0 ? '#16a34a' : '#dc2626';
+    return `
+      <g class="barra-grupo">
+        <title>${nomeMes(p.chave)}: faturamento ${fmtMoeda(p.fat)}, despesas ${fmtMoeda(p.desp)}, lucro ${fmtMoeda(p.lucro)}</title>
+        <rect x="${xFat}" y="${baseY - hFat}" width="${larguraBarra}" height="${hFat}" rx="3" fill="#16a34a" />
+        <rect x="${xDesp}" y="${baseY - hDesp}" width="${larguraBarra}" height="${hDesp}" rx="3" fill="#dc2626" />
+        <text x="${cx}" y="${baseY + 20}" text-anchor="middle" font-size="11" fill="#64748b" font-weight="600">${nomeMesAbrev(p.chave)}</text>
+      </g>`;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 ${larguraTotal} ${alturaTotal}" xmlns="http://www.w3.org/2000/svg">
+      <line x1="0" y1="${baseY}" x2="${larguraTotal}" y2="${baseY}" stroke="#e2e8f0" stroke-width="1" />
+      ${barras}
+    </svg>
+    <div class="legenda-donut" style="flex-direction:row; gap:18px; margin-top:6px;">
+      <span class="legenda-item"><span class="ponto" style="background:#16a34a;"></span><span class="lbl">Faturamento</span></span>
+      <span class="legenda-item"><span class="ponto" style="background:#dc2626;"></span><span class="lbl">Despesas</span></span>
+    </div>`;
+}
+
+/* Rosca: distribuição das vendas do mês por método de pagamento */
+function graficoDonutSvg(vendasMes) {
+  if (vendasMes.length === 0) {
+    return { svg: '<div class="grafico-vazio">Nenhuma venda neste mês.</div>', legenda: '' };
+  }
+  const porMetodo = {};
+  vendasMes.forEach(v => { porMetodo[v.metodo] = (porMetodo[v.metodo] || 0) + v.valor; });
+  const total = Object.values(porMetodo).reduce((s,v) => s + v, 0);
+  const ordem = ['Pix', 'Crédito', 'Débito', 'Dinheiro'].filter(m => porMetodo[m] > 0);
+
+  const r = 70, cx = 100, cy = 100, largura = 30;
+  const circ = 2 * Math.PI * r;
+  let acumulado = 0;
+  const arcos = ordem.map(m => {
+    const valor = porMetodo[m];
+    const fracao = valor / total;
+    const comprimento = fracao * circ;
+    const offset = -acumulado;
+    acumulado += comprimento;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${metodoCor[m]}" stroke-width="${largura}"
+              stroke-dasharray="${comprimento} ${circ - comprimento}" stroke-dashoffset="${offset}"
+              transform="rotate(-90 ${cx} ${cy})"><title>${m}: ${fmtMoeda(valor)}</title></circle>`;
+  }).join('');
+
+  const svg = `
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      ${arcos}
+      <text x="100" y="96" text-anchor="middle" font-size="15" font-weight="800" fill="#0f172a">${fmtMoeda(total)}</text>
+      <text x="100" y="114" text-anchor="middle" font-size="10" fill="#64748b">total no mês</text>
+    </svg>`;
+
+  const legenda = ordem.map(m => {
+    const valor = porMetodo[m];
+    const pct = Math.round((valor / total) * 100);
+    return `
+      <div class="legenda-item">
+        <span class="ponto" style="background:${metodoCor[m]};"></span>
+        <span class="lbl">${escapar(m)}</span>
+        <span class="val">${pct}% · ${fmtMoeda(valor)}</span>
+      </div>`;
+  }).join('');
+
+  return { svg, legenda };
+}
 
 /* ===========================================================
    9) RENDER
@@ -973,6 +1110,12 @@ function render() {
   document.getElementById('rMateriaPrima').textContent = fmtMoeda(totMateria);
   document.getElementById('rManutencao').textContent = fmtMoeda(totManut);
   document.getElementById('rQtdVendas').textContent = vendasMes.length;
+
+  // ----- Gráficos comparativos -----
+  document.getElementById('graficoBarras').innerHTML = graficoBarrasSvg(mesSelecionado);
+  const donut = graficoDonutSvg(vendasMes);
+  document.getElementById('graficoDonut').innerHTML = donut.svg;
+  document.getElementById('legendaDonut').innerHTML = donut.legenda;
 
   // ----- Vendas agrupadas por dia -----
   const porDia = {};
