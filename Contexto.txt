@@ -1,0 +1,66 @@
+Agentes
+notion
+fotos de sites de exemplo
+
+
+você é um programador de sites e você foi oferecer criar sistemas em 2 sorveterias uma aceitou o nome da sorveteria que aceitou é dibosco
+eles querem um sistema que se conecta com sua maquina de credito, debito e pix o objetivo de ser conectado com a maquina é pra quando um cliente comprar a compra ja ficar registrada 
+o sistema tem que ser inicialmente sem ser conectado com a maquina ( Apenas para apresentar para os clientes
+tem que ser possível cadastrar a maquina depois
+O sistema vai ser hosteado na vercel e o domínio vai ser do registro.br
+Use Agentes para facilitar esse trabalho 
+o domínio vai estar conectado com a superbase 
+Me diga os agentes que você usou depois de terminar o trabalho
+faça o index e deixa que eu faço o resto
+
+desenho do sistema:
+
+                                 Sistema Dibosco
+
+Resumo
+Vendas
+Despesas
+
+Abre Vendas
+a maquina registrando todas as vendas do dia
+Dia 28/09
+Dia 27/09
+Dia 26/09
+Abre Dia 28/09
+todas as vendas registradas pela maquina 
+ex: dia: 28/09 hora:13:40 compra: pote M método de pagamento: Pix Valor: 20.90
+opção de adicionar venda
+
+
+Abre Despesas
+Despesas
+Despesas Matéria prima (se tiver um nome melhor coloque)
+Despesas Manutenção De maquinas 
+
+
+Abre Despesas Manutenção De maquinas 
+Manutenção:Do freezer / Custo:850 / Dia:20/09 se tiver mais indicações coloque
+Botão adicionar mais manutenções  
+
+Fecha
+
+Abre Despesas Matéria prima (se tiver um nome melhor coloque)
+Despesas Materia prima : dia 20/09 / item: 15KG de casquinha / Preço:1000
+Botão adicionar mais despesas de matéria prima
+
+Fecha
+
+Abre Resumo
+Resumo
+Despesas Matérias primas custo final do mês de setembro = preço x
+Despesas Manutenção custo final do mês de setembro = preço y
+Custo total das despesas  do mês de setembro = preço x + preço y
+Faturamento (apenas as vendas) = 70000 ( do mês de setembro)
+lucro ( Faturamento -Despesas) = 30000 ( do mês de setembro)
+
+
+
+
+
+
+

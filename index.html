@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sistema Dibosco — Gestão da Sorveteria</title>
+<style>
+  :root {
+    --verde: #16a34a;
+    --verde-claro: #22c55e;
+    --verde-escuro: #15803d;
+    --dark: #0f172a;
+    --dark-2: #1e293b;
+    --cinza: #64748b;
+    --cinza-claro: #f1f5f9;
+    --borda: #e2e8f0;
+    --vermelho: #dc2626;
+    --amarelo: #f59e0b;
+    --branco: #ffffff;
+    --sombra: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+    --sombra-lg: 0 10px 25px rgba(0,0,0,.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f8fafc;
+    color: var(--dark);
+    line-height: 1.5;
+  }
+  /* ---------- Topo ---------- */
+  header {
+    background: var(--dark);
+    color: #fff;
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+  .logo .icone {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--verde-claro), var(--verde));
+    display: grid; place-items: center; font-size: 20px;
+  }
+  .logo span.verde { color: var(--verde-claro); }
+  .topo-dir { display: flex; align-items: center; gap: 12px; }
+  .status-maquina {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; background: var(--dark-2);
+    padding: 7px 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid #334155; transition: .15s;
+  }
+  .status-maquina:hover { border-color: var(--verde); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--amarelo); }
+  .dot.ligada { background: var(--verde-claro); box-shadow: 0 0 0 3px rgba(34,197,94,.25); }
+  .usuario-box { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cbd5e1; }
+  .usuario-box .email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn-sair {
+    background: var(--dark-2); color: #fff; border: 1px solid #334155;
+    padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s;
+  }
+  .btn-sair:hover { border-color: var(--vermelho); color: #fecaca; }
+
+  /* ---------- Abas ---------- */
+  nav.abas {
+    background: #fff;
+    border-bottom: 1px solid var(--borda);
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+    position: sticky;
+    top: 64px;
+    z-index: 40;
+  }
+  nav.abas button {
+    background: none; border: none; cursor: pointer;
+    padding: 16px 20px; font-size: 15px; font-weight: 600;
+    color: var(--cinza); border-bottom: 3px solid transparent;
+    transition: .15s;
+  }
+  nav.abas button:hover { color: var(--dark); }
+  nav.abas button.ativa { color: var(--verde); border-bottom-color: var(--verde); }
+
+  /* ---------- Conteúdo ---------- */
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
+  .pagina { display: none; }
+  .pagina.ativa { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .titulo-pg { font-size: 26px; font-weight: 800; margin-bottom: 4px; }
+  .sub-pg { color: var(--cinza); margin-bottom: 24px; }
+
+  /* Cards de resumo */
+  .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .card {
+    background: #fff; border: 1px solid var(--borda); border-radius: 14px;
+    padding: 20px; box-shadow: var(--sombra);
+  }
+  .card .rotulo { font-size: 13px; color: var(--cinza); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+  .card .valor { font-size: 28px; font-weight: 800; margin-top: 6px; }
+  .card.destaque { background: linear-gradient(135deg, var(--verde), var(--verde-escuro)); border: none; color: #fff; }
+  .card.destaque .rotulo, .card.lucro .rotulo { opacity: .9; }
+  .valor.verde { color: var(--verde); }
+  .valor.vermelho { color: var(--vermelho); }
+
+  .secao-titulo { font-size: 18px; font-weight: 700; margin: 28px 0 14px; display: flex; align-items: center; gap: 8px; }
+
+  /* Tabelas / listas */
+  .painel { background: #fff; border: 1px solid var(--borda); border-radius: 14px; box-shadow: var(--sombra); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 13px 18px; font-size: 14px; }
+  th { background: var(--cinza-claro); color: var(--cinza); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
+  tbody tr { border-top: 1px solid var(--borda); }
+  tbody tr:hover { background: #fafbfc; }
+  .vazio { padding: 36px; text-align: center; color: var(--cinza); }
+
+  /* Pílulas de pagamento */
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .pill.pix { background: #d1fae5; color: #065f46; }
+  .pill.credito { background: #dbeafe; color: #1e40af; }
+  .pill.debito { background: #ede9fe; color: #5b21b6; }
+  .pill.dinheiro { background: #fef3c7; color: #92400e; }
+
+  /* Dias (Vendas) */
+  .dia-bloco { margin-bottom: 14px; }
+  .dia-cabecalho {
+    background: #fff; border: 1px solid var(--borda); border-radius: 12px;
+    padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; box-shadow: var(--sombra); transition: .15s;
+  }
+  .dia-cabecalho:hover { border-color: var(--verde-claro); }
+  .dia-cabecalho .esq { display: flex; align-items: center; gap: 12px; font-weight: 700; }
+  .dia-cabecalho .seta { transition: .2s; color: var(--cinza); }
+  .dia-bloco.aberto .seta { transform: rotate(90deg); }
+  .dia-cabecalho .total-dia { font-weight: 800; color: var(--verde); }
+  .badge-qtd { background: var(--cinza-claro); color: var(--cinza); padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .dia-corpo { display: none; margin-top: 8px; }
+  .dia-bloco.aberto .dia-corpo { display: block; }
+
+  /* Botões */
+  .btn {
+    background: var(--verde); color: #fff; border: none; cursor: pointer;
+    padding: 11px 18px; border-radius: 10px; font-size: 14px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 7px; transition: .15s;
+  }
+  .btn:hover { background: var(--verde-escuro); }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  .btn.secundario { background: #fff; color: var(--dark); border: 1px solid var(--borda); }
+  .btn.secundario:hover { background: var(--cinza-claro); }
+  .btn.perigo { background: var(--vermelho); }
+  .btn-icone { background: none; border: none; cursor: pointer; color: var(--cinza); font-size: 16px; padding: 4px 8px; border-radius: 6px; }
+  .btn-icone:hover { background: #fee2e2; color: var(--vermelho); }
+  .barra-acao { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+
+  /* Sub-abas Despesas */
+  .sub-abas { display: flex; gap: 8px; margin-bottom: 20px; }
+  .sub-abas button {
+    background: #fff; border: 1px solid var(--borda); border-radius: 999px;
+    padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--cinza);
+  }
+  .sub-abas button.ativa { background: var(--verde); color: #fff; border-color: var(--verde); }
+
+  /* Modal */
+  .overlay {
+    display: none; position: fixed; inset: 0; background: rgba(15,23,42,.55);
+    z-index: 100; align-items: center; justify-content: center; padding: 20px;
+  }
+  .overlay.aberto { display: flex; }
+  .modal { background: #fff; border-radius: 18px; width: 100%; max-width: 440px; box-shadow: var(--sombra-lg); overflow: hidden; }
+  .modal-cabecalho { padding: 22px 24px 0; }
+  .modal-cabecalho h3 { font-size: 20px; font-weight: 800; }
+  .modal-cabecalho p { color: var(--cinza); font-size: 14px; margin-top: 4px; }
+  .modal-corpo { padding: 20px 24px; }
+  .campo { margin-bottom: 16px; }
+  .campo label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .campo input, .campo select {
+    width: 100%; padding: 11px 13px; border: 1px solid var(--borda);
+    border-radius: 10px; font-size: 15px; font-family: inherit; outline: none; transition: .15s;
+  }
+  .campo input:focus, .campo select:focus { border-color: var(--verde); box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+  .linha-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-rodape { padding: 0 24px 24px; display: flex; gap: 10px; justify-content: flex-end; }
+
+  .aviso-demo {
+    background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+    padding: 12px 16px; border-radius: 12px; font-size: 13px; margin-bottom: 22px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ---------- Tela de Login ---------- */
+  #telaLogin {
+    position: fixed; inset: 0; z-index: 200;
+    background: linear-gradient(135deg, #0f172a, #15803d);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  #telaLogin.aberta { display: flex; }
+  .login-card { background: #fff; border-radius: 20px; width: 100%; max-width: 400px; box-shadow: var(--sombra-lg); padding: 32px 28px; }
+  .login-logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; justify-content: center; margin-bottom: 6px; }
+  .login-logo .icone { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, var(--verde-claro), var(--verde)); display: grid; place-items: center; font-size: 22px; }
+  .login-sub { text-align: center; color: var(--cinza); font-size: 14px; margin-bottom: 24px; }
+  .login-erro { background: #fef2f2; border: 1px solid #fecaca; color: var(--vermelho); padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
+  .login-erro.aberto { display: block; }
+  .login-ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: var(--verde-escuro); padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
+  .login-ok.aberto { display: block; }
+  .login-card .btn { width: 100%; justify-content: center; margin-top: 4px; }
+  .login-alt { text-align: center; margin-top: 18px; font-size: 14px; color: var(--cinza); }
+  .login-alt a { color: var(--verde); font-weight: 700; cursor: pointer; text-decoration: none; }
+  .login-local-aviso { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 10px; font-size: 12px; margin-top: 18px; }
+
+  @media (max-width: 600px) {
+    .linha-2 { grid-template-columns: 1fr; }
+    nav.abas { overflow-x: auto; }
+    .titulo-pg { font-size: 22px; }
+    .usuario-box .email { max-width: 90px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ TELA DE LOGIN ============ -->
+<div id="telaLogin">
+  <div class="login-card">
+    <div class="login-logo"><div class="icone">🍦</div> Sistema <span class="verde" style="color:var(--verde);">Dibosco</span></div>
+    <p class="login-sub" id="loginSub">Entre para acessar a gestão da sorveteria</p>
+
+    <div class="login-erro" id="loginErro"></div>
+    <div class="login-ok" id="loginOk"></div>
+
+    <div class="campo"><label for="loginEmail">Usuário</label><input type="text" id="loginEmail" placeholder="Dibosco" autocomplete="username" /></div>
+    <div class="campo"><label for="loginSenha">Senha</label><input type="password" id="loginSenha" placeholder="••••••••" autocomplete="current-password" /></div>
+
+    <button class="btn" id="btnEntrar" onclick="entrar()">Entrar</button>
+
+    <div class="login-alt" id="alternaModo" style="display:none;">
+      Ainda não tem conta? <a onclick="alternarModoLogin(true)">Criar conta</a>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="icone">🍦</div>
+    <div>Sistema <span class="verde">Dibosco</span></div>
+  </div>
+  <div class="topo-dir">
+    <div class="status-maquina" id="statusMaquina" onclick="abrirModalMaquina()">
+      <span class="dot" id="dotMaquina"></span>
+      <span id="textoMaquina">Máquina não conectada</span>
+    </div>
+    <div class="usuario-box" id="usuarioBox" style="display:none;">
+      <span class="email" id="usuarioEmail"></span>
+      <button class="btn-sair" onclick="sair()">Sair</button>
+    </div>
+  </div>
+</header>
+
+<nav class="abas">
+  <button class="ativa" data-pg="resumo" onclick="trocarAba('resumo')">📊 Resumo</button>
+  <button data-pg="vendas" onclick="trocarAba('vendas')">🧾 Vendas</button>
+  <button data-pg="despesas" onclick="trocarAba('despesas')">💸 Despesas</button>
+</nav>
+
+<main>
+  <!-- ============ RESUMO ============ -->
+  <section class="pagina ativa" id="pg-resumo">
+    <h1 class="titulo-pg">Resumo</h1>
+    <p class="sub-pg" id="subResumo">Visão geral do mês</p>
+
+    <div class="barra-acao">
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div class="campo" style="margin:0;">
+          <label for="filtroMesNum">Mês</label>
+          <select id="filtroMesNum" onchange="render()" style="min-width:150px;"></select>
+        </div>
+        <div class="campo" style="margin:0;">
+          <label for="filtroAno">Ano</label>
+          <select id="filtroAno" onchange="render()" style="min-width:120px;"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-cards">
+      <div class="card destaque">
+        <div class="rotulo">Faturamento (vendas)</div>
+        <div class="valor" id="rFaturamento">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="rotulo">Despesas totais</div>
+        <div class="valor vermelho" id="rDespesas">R$ 0,00</div>
+      </div>
+      <div class="card lucro">
+        <div class="rotulo">Lucro (faturamento − despesas)</div>
+        <div class="valor" id="rLucro">R$ 0,00</div>
+      </div>
+    </div>
+
+    <div class="secao-titulo">Detalhamento das despesas</div>
+    <div class="grid-cards">
+      <div class="card">
+        <div class="rotulo">Matéria-prima</div>
+        <div class="valor" id="rMateriaPrima">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="rotulo">Manutenção de máquinas</div>
+        <div class="valor" id="rManutencao">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="rotulo">Qtd. de vendas no mês</div>
+        <div class="valor verde" id="rQtdVendas">0</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VENDAS ============ -->
+  <section class="pagina" id="pg-vendas">
+    <h1 class="titulo-pg">Vendas</h1>
+    <p class="sub-pg">Todas as vendas, agrupadas por dia</p>
+
+    <div class="aviso-demo" id="avisoVendas">
+      ⚠️ <span>Modo demonstração — a máquina de cartão ainda não está conectada. As vendas são adicionadas manualmente. Cadastre a máquina para registro automático.</span>
+    </div>
+
+    <div class="barra-acao">
+      <strong id="totalVendasGeral" style="color:var(--cinza);"></strong>
+      <button class="btn" onclick="abrirModalVenda()">＋ Adicionar venda</button>
+    </div>
+
+    <div id="listaDias"></div>
+  </section>
+
+  <!-- ============ DESPESAS ============ -->
+  <section class="pagina" id="pg-despesas">
+    <h1 class="titulo-pg">Despesas</h1>
+    <p class="sub-pg">Matéria-prima e manutenção de máquinas</p>
+
+    <div class="sub-abas">
+      <button class="ativa" id="sub-materia" onclick="trocarSubDespesa('materia')">📦 Matéria-prima</button>
+      <button id="sub-manutencao" onclick="trocarSubDespesa('manutencao')">🔧 Manutenção de máquinas</button>
+    </div>
+
+    <!-- Matéria-prima -->
+    <div id="desp-materia">
+      <div class="barra-acao">
+        <strong id="totalMateria" style="color:var(--cinza);"></strong>
+        <button class="btn" onclick="abrirModalMateria()">＋ Adicionar despesa de matéria-prima</button>
+      </div>
+      <div class="painel">
+        <table>
+          <thead><tr><th>Dia</th><th>Item</th><th>Preço</th><th></th></tr></thead>
+          <tbody id="tabelaMateria"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Manutenção -->
+    <div id="desp-manutencao" style="display:none;">
+      <div class="barra-acao">
+        <strong id="totalManutencao" style="color:var(--cinza);"></strong>
+        <button class="btn" onclick="abrirModalManutencao()">＋ Adicionar manutenção</button>
+      </div>
+      <div class="painel">
+        <table>
+          <thead><tr><th>Dia</th><th>Manutenção</th><th>Equipamento</th><th>Custo</th><th></th></tr></thead>
+          <tbody id="tabelaManutencao"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ MODAIS ============ -->
+<div class="overlay" id="overlayVenda">
+  <div class="modal">
+    <div class="modal-cabecalho"><h3>Adicionar venda</h3><p>Registre uma venda manualmente</p></div>
+    <div class="modal-corpo">
+      <div class="campo"><label>Produto / compra</label><input id="vProduto" placeholder="Ex: pote M, casquinha, açaí 500ml" /></div>
+      <div class="linha-2">
+        <div class="campo"><label>Data</label><input type="date" id="vData" /></div>
+        <div class="campo"><label>Hora</label><input type="time" id="vHora" /></div>
+      </div>
+      <div class="linha-2">
+        <div class="campo"><label>Método de pagamento</label>
+          <select id="vMetodo"><option>Pix</option><option>Crédito</option><option>Débito</option><option>Dinheiro</option></select>
+        </div>
+        <div class="campo"><label>Valor (R$)</label><input type="number" step="0.01" min="0" id="vValor" placeholder="20,90" /></div>
+      </div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn secundario" onclick="fechar('overlayVenda')">Cancelar</button>
+      <button class="btn" id="btnSalvarVenda" onclick="salvarVenda()">Salvar venda</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayMateria">
+  <div class="modal">
+    <div class="modal-cabecalho"><h3>Despesa de matéria-prima</h3><p>Insumos e ingredientes</p></div>
+    <div class="modal-corpo">
+      <div class="campo"><label>Item</label><input id="mItem" placeholder="Ex: 15KG de casquinha" /></div>
+      <div class="linha-2">
+        <div class="campo"><label>Data</label><input type="date" id="mData" /></div>
+        <div class="campo"><label>Preço (R$)</label><input type="number" step="0.01" min="0" id="mPreco" placeholder="1000,00" /></div>
+      </div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn secundario" onclick="fechar('overlayMateria')">Cancelar</button>
+      <button class="btn" id="btnSalvarMateria" onclick="salvarMateria()">Salvar despesa</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayManutencao">
+  <div class="modal">
+    <div class="modal-cabecalho"><h3>Manutenção de máquinas</h3><p>Conserto e manutenção de equipamentos</p></div>
+    <div class="modal-corpo">
+      <div class="campo"><label>O que foi feito</label><input id="nDescricao" placeholder="Ex: Manutenção do freezer" /></div>
+      <div class="campo"><label>Equipamento</label><input id="nEquip" placeholder="Ex: Freezer, máquina de sorvete" /></div>
+      <div class="linha-2">
+        <div class="campo"><label>Data</label><input type="date" id="nData" /></div>
+        <div class="campo"><label>Custo (R$)</label><input type="number" step="0.01" min="0" id="nCusto" placeholder="850,00" /></div>
+      </div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn secundario" onclick="fechar('overlayManutencao')">Cancelar</button>
+      <button class="btn" id="btnSalvarManutencao" onclick="salvarManutencao()">Salvar manutenção</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayMaquina">
+  <div class="modal">
+    <div class="modal-cabecalho"><h3>Máquina de cartão</h3><p>Conecte a maquininha (crédito, débito e Pix) para registro automático das vendas</p></div>
+    <div class="modal-corpo">
+      <div class="campo"><label>Operadora / Adquirente</label>
+        <select id="qOperadora"><option value="">Selecione...</option><option>Cielo</option><option>Stone</option><option>PagSeguro</option><option>Mercado Pago</option><option>SumUp</option><option>Rede</option><option>InfinitePay</option><option>Outra</option></select>
+      </div>
+      <div class="linha-2">
+        <div class="campo"><label>Nº de série / ID</label><input id="qSerie" placeholder="Ex: SN-00123456" /></div>
+        <div class="campo"><label>Apelido</label><input id="qApelido" placeholder="Ex: Caixa 1" /></div>
+      </div>
+      <div class="aviso-demo" style="margin:6px 0 0;">
+        ⚠️ <span>Integração de registro automático será ativada quando a maquininha for vinculada. Por enquanto, esta é a etapa de cadastro (demonstração).</span>
+      </div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn secundario" id="btnDesconectar" onclick="desconectarMaquina()" style="display:none;">Desconectar</button>
+      <button class="btn secundario" onclick="fechar('overlayMaquina')">Cancelar</button>
+      <button class="btn" id="btnSalvarMaquina" onclick="salvarMaquina()">Cadastrar máquina</button>
+    </div>
+  </div>
+</div>
+
+<!-- Biblioteca do Supabase (login + banco de dados na nuvem) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* =========================================================
+   Sistema Dibosco
+   - Login + banco de dados compartilhado via Supabase (nuvem)
+   - Funciona também em "modo local" (localStorage) quando o
+     Supabase ainda não foi configurado, para testes/apresentação.
+   ========================================================= */
+
+/* ===========================================================
+   1) CONFIGURAÇÃO DO SUPABASE
+   Substitua os dois valores abaixo pelos da SUA conta Supabase
+   (Project Settings → API). Enquanto estiverem com o texto
+   "COLE_AQUI", o sistema roda em modo local (só neste navegador).
+   A chave "anon" é pública por natureza — pode ficar no site.
+   =========================================================== */
+const SUPABASE_URL = 'https://ryfjjhyhhmvwifyzreba.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZmpqaHloaG12d2lmeXpyZWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NjExMjEsImV4cCI6MjA5ODQzNzEyMX0._AZNKNxjV23ywfDhnxVCbHc6h8WluIj4cLdcHVegghI';
+
+/* ===========================================================
+   1b) CONTA DE ACESSO PADRÃO
+   Usuário e senha já criados. Funcionam mesmo sem o Supabase
+   configurado (modo local). Quando o Supabase estiver ligado,
+   o mesmo usuário "Dibosco" vira o e-mail "dibosco@<DOMINIO_LOGIN>".
+   Para trocar a senha depois, altere aqui (modo local) ou pelo
+   painel do Supabase (modo nuvem).
+   =========================================================== */
+const USUARIO_PADRAO = 'Dibosco';
+const SENHA_PADRAO = 'Dibosco@2026';
+const DOMINIO_LOGIN = 'dibosco.app'; // usado só para montar o e-mail no Supabase
+
+const nuvemAtiva = () =>
+  typeof supabase !== 'undefined' &&
+  SUPABASE_URL.startsWith('http') &&
+  !SUPABASE_ANON_KEY.startsWith('COLE_AQUI');
+
+const sb = nuvemAtiva() ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+/* ---------- Estado ---------- */
+const CHAVE = 'dibosco_dados_v1';
+const SESSAO_LOCAL = 'dibosco_sessao'; // marca que o login local foi feito
+let dados = { maquina: null, vendas: [], materiaPrima: [], manutencao: [], seq: 100 };
+let subDespesaAtual = 'materia';
+let mesSelecionado = null;
+let filtroIniciado = false;
+let modoCadastro = false; // tela de login: false = entrar, true = criar conta
+
+/* ===========================================================
+   2) CAMADA DE DADOS (local x nuvem)
+   =========================================================== */
+function carregarLocal() {
+  const bruto = localStorage.getItem(CHAVE);
+  if (bruto) { try { return JSON.parse(bruto); } catch (e) { /* dado corrompido */ } }
+  // Dados de exemplo (apenas modo local / apresentação)
+  return {
+    maquina: null,
+    vendas: [
+      { id: 1, produto: 'Pote M', data: '2026-09-28', hora: '13:40', metodo: 'Pix', valor: 20.90 },
+      { id: 2, produto: 'Casquinha 2 bolas', data: '2026-09-28', hora: '14:05', metodo: 'Débito', valor: 12.00 },
+      { id: 3, produto: 'Açaí 500ml', data: '2026-09-28', hora: '16:20', metodo: 'Crédito', valor: 28.50 },
+      { id: 4, produto: 'Pote G', data: '2026-09-27', hora: '11:10', metodo: 'Dinheiro', valor: 35.00 },
+      { id: 5, produto: 'Milk-shake', data: '2026-09-27', hora: '19:45', metodo: 'Pix', valor: 18.00 },
+      { id: 6, produto: 'Pote P', data: '2026-09-26', hora: '15:30', metodo: 'Crédito', valor: 14.90 },
+    ],
+    materiaPrima: [
+      { id: 1, data: '2026-09-20', item: '15KG de casquinha', preco: 1000.00 },
+      { id: 2, data: '2026-09-15', item: '50L de base de sorvete', preco: 1850.00 },
+    ],
+    manutencao: [
+      { id: 1, data: '2026-09-20', descricao: 'Manutenção do freezer', equipamento: 'Freezer', custo: 850.00 },
+    ],
+    seq: 100,
+  };
+}
+function salvarLocal() { localStorage.setItem(CHAVE, JSON.stringify(dados)); }
+function novoId() { return ++dados.seq; }
+
+/* Busca todos os dados na nuvem (Supabase) */
+async function carregarNuvem() {
+  const [v, m, n, c] = await Promise.all([
+    sb.from('vendas').select('*').order('data', { ascending: false }),
+    sb.from('materia_prima').select('*').order('data', { ascending: false }),
+    sb.from('manutencao').select('*').order('data', { ascending: false }),
+    sb.from('config').select('*').eq('chave', 'maquina').maybeSingle(),
+  ]);
+  if (v.error || m.error || n.error) {
+    console.error(v.error || m.error || n.error);
+    alert('Erro ao carregar os dados da nuvem. Verifique a configuração do Supabase.');
+  }
+  dados = {
+    maquina: c && c.data ? c.data.valor : null,
+    vendas: (v.data || []).map(r => ({ id: r.id, produto: r.produto, data: r.data, hora: r.hora, metodo: r.metodo, valor: Number(r.valor) })),
+    materiaPrima: (m.data || []).map(r => ({ id: r.id, data: r.data, item: r.item, preco: Number(r.preco) })),
+    manutencao: (n.data || []).map(r => ({ id: r.id, data: r.data, descricao: r.descricao, equipamento: r.equipamento, custo: Number(r.custo) })),
+    seq: 100,
+  };
+}
+
+/* Salva no localStorage apenas quando NÃO estamos na nuvem */
+function persistirSeLocal() { if (!nuvemAtiva()) salvarLocal(); }
+
+/* Insere um registro e devolve o objeto final com id.
+   NÃO altera o estado em memória — quem chama é que faz o push. */
+async function inserir(tabelaNuvem, registro) {
+  if (nuvemAtiva()) {
+    const { data, error } = await sb.from(tabelaNuvem).insert(registro).select().single();
+    if (error) { alert('Erro ao salvar: ' + error.message); throw error; }
+    return data;
+  }
+  return { id: novoId(), ...registro };
+}
+
+/* Exclui um registro pelo id na nuvem (no local, quem chama filtra). */
+async function remover(tabelaNuvem, id) {
+  if (nuvemAtiva()) {
+    const { error } = await sb.from(tabelaNuvem).delete().eq('id', id);
+    if (error) { alert('Erro ao excluir: ' + error.message); throw error; }
+  }
+}
+
+/* Salva a configuração da máquina (nuvem ou local) */
+async function persistirMaquina(maquina) {
+  if (nuvemAtiva()) {
+    const { error } = await sb.from('config').upsert({ chave: 'maquina', valor: maquina });
+    if (error) { alert('Erro ao salvar a máquina: ' + error.message); throw error; }
+  } else {
+    salvarLocal();
+  }
+}
+
+/* ===========================================================
+   3) LOGIN (Supabase Auth)
+   =========================================================== */
+function mostrarLogin(msg) {
+  document.getElementById('telaLogin').classList.add('aberta');
+  if (msg) mostrarErroLogin(msg);
+}
+function esconderLogin() { document.getElementById('telaLogin').classList.remove('aberta'); }
+function mostrarErroLogin(t) { const e = document.getElementById('loginErro'); e.textContent = t; e.classList.add('aberto'); document.getElementById('loginOk').classList.remove('aberto'); }
+function mostrarOkLogin(t) { const e = document.getElementById('loginOk'); e.textContent = t; e.classList.add('aberto'); document.getElementById('loginErro').classList.remove('aberto'); }
+function limparAvisosLogin() { document.getElementById('loginErro').classList.remove('aberto'); document.getElementById('loginOk').classList.remove('aberto'); }
+
+function alternarModoLogin(cadastro) {
+  modoCadastro = cadastro;
+  limparAvisosLogin();
+  document.getElementById('loginSub').textContent = cadastro
+    ? 'Crie sua conta de acesso ao sistema'
+    : 'Entre para acessar a gestão da sorveteria';
+  document.getElementById('btnEntrar').textContent = cadastro ? 'Criar conta' : 'Entrar';
+  document.getElementById('alternaModo').innerHTML = cadastro
+    ? 'Já tem conta? <a onclick="alternarModoLogin(false)">Entrar</a>'
+    : 'Ainda não tem conta? <a onclick="alternarModoLogin(true)">Criar conta</a>';
+}
+
+/* Transforma "Dibosco" em "dibosco@dibosco.app" para o Supabase.
+   Se o usuário já digitar um e-mail completo, mantém como está. */
+function usuarioParaEmail(u) {
+  return u.includes('@') ? u : `${u.toLowerCase()}@${DOMINIO_LOGIN}`;
+}
+
+async function entrar() {
+  const usuario = document.getElementById('loginEmail').value.trim();
+  const senha = document.getElementById('loginSenha').value;
+  if (!usuario || !senha) { mostrarErroLogin('Preencha usuário e senha.'); return; }
+  const btn = document.getElementById('btnEntrar');
+  btn.disabled = true;
+  try {
+    if (nuvemAtiva()) {
+      const email = usuarioParaEmail(usuario);
+      if (modoCadastro) {
+        const { error } = await sb.auth.signUp({ email, password: senha });
+        if (error) { mostrarErroLogin(traduzErro(error.message)); return; }
+        mostrarOkLogin('Conta criada! Agora você já pode entrar.');
+        alternarModoLogin(false);
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+        if (error) { mostrarErroLogin(traduzErro(error.message)); return; }
+        // onAuthStateChange cuida de carregar e mostrar o app
+      }
+    } else {
+      // Modo local: confere a conta padrão (Dibosco / Dibosco@2026)
+      if (usuario.toLowerCase() === USUARIO_PADRAO.toLowerCase() && senha === SENHA_PADRAO) {
+        sessionStorage.setItem(SESSAO_LOCAL, '1');
+        entrarLocalOk();
+      } else {
+        mostrarErroLogin('Usuário ou senha incorretos.');
+      }
+    }
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* Entra no app em modo local (conta padrão) */
+function entrarLocalOk() {
+  dados = carregarLocal();
+  document.getElementById('usuarioBox').style.display = 'flex';
+  document.getElementById('usuarioEmail').textContent = USUARIO_PADRAO;
+  esconderLogin();
+  render();
+}
+
+function traduzErro(msg) {
+  const m = (msg || '').toLowerCase();
+  if (m.includes('invalid login')) return 'E-mail ou senha incorretos.';
+  if (m.includes('email not confirmed')) return 'Confirme seu e-mail antes de entrar.';
+  if (m.includes('already registered')) return 'Este e-mail já tem conta. Faça login.';
+  if (m.includes('password')) return 'A senha precisa ter pelo menos 6 caracteres.';
+  return msg;
+}
+
+async function sair() {
+  if (nuvemAtiva()) { await sb.auth.signOut(); }
+  else { sessionStorage.removeItem(SESSAO_LOCAL); }
+  location.reload();
+}
+
+async function aposLogin(session) {
+  const em = session?.user?.email || '';
+  document.getElementById('usuarioBox').style.display = 'flex';
+  document.getElementById('usuarioEmail').textContent = em.split('@')[0] || em;
+  await carregarNuvem();
+  esconderLogin();
+  render();
+}
+
+/* ===========================================================
+   4) INICIALIZAÇÃO
+   =========================================================== */
+async function iniciar() {
+  if (nuvemAtiva()) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) { await aposLogin(session); } else { mostrarLogin(); }
+    sb.auth.onAuthStateChange((evento, session) => {
+      if (evento === 'SIGNED_IN' && session) { aposLogin(session); }
+      else if (evento === 'SIGNED_OUT') { mostrarLogin(); }
+    });
+  } else {
+    // Modo local (sem Supabase): login com a conta padrão Dibosco
+    if (sessionStorage.getItem(SESSAO_LOCAL) === '1') {
+      entrarLocalOk();
+    } else {
+      document.getElementById('usuarioBox').style.display = 'none';
+      mostrarLogin();
+    }
+  }
+}
+
+/* ===========================================================
+   5) FORMATAÇÃO
+   =========================================================== */
+const fmtMoeda = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const fmtData = iso => { const [a,m,d] = iso.split('-'); return `${d}/${m}/${a}`; };
+const nomeMes = chave => {
+  const [a,m] = chave.split('-');
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return `${meses[+m-1]} de ${a}`;
+};
+const mesDe = iso => iso.slice(0,7);
+function escapar(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* Datas/horas LOCAIS (corrige o bug do fuso: toISOString usa UTC) */
+function hoje() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function agora() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+/* ===========================================================
+   6) NAVEGAÇÃO
+   =========================================================== */
+function trocarAba(pg) {
+  document.querySelectorAll('nav.abas button').forEach(b => b.classList.toggle('ativa', b.dataset.pg === pg));
+  document.querySelectorAll('.pagina').forEach(p => p.classList.remove('ativa'));
+  document.getElementById('pg-' + pg).classList.add('ativa');
+}
+function trocarSubDespesa(qual) {
+  subDespesaAtual = qual;
+  document.getElementById('sub-materia').classList.toggle('ativa', qual === 'materia');
+  document.getElementById('sub-manutencao').classList.toggle('ativa', qual === 'manutencao');
+  document.getElementById('desp-materia').style.display = qual === 'materia' ? 'block' : 'none';
+  document.getElementById('desp-manutencao').style.display = qual === 'manutencao' ? 'block' : 'none';
+}
+
+/* ===========================================================
+   7) MODAIS
+   =========================================================== */
+function abrir(id) { document.getElementById(id).classList.add('aberto'); }
+function fechar(id) { document.getElementById(id).classList.remove('aberto'); }
+
+function abrirModalVenda() {
+  document.getElementById('vProduto').value = '';
+  document.getElementById('vData').value = hoje();
+  document.getElementById('vHora').value = agora();
+  document.getElementById('vMetodo').value = 'Pix';
+  document.getElementById('vValor').value = '';
+  abrir('overlayVenda');
+}
+function abrirModalMateria() {
+  document.getElementById('mItem').value = '';
+  document.getElementById('mData').value = hoje();
+  document.getElementById('mPreco').value = '';
+  abrir('overlayMateria');
+}
+function abrirModalManutencao() {
+  document.getElementById('nDescricao').value = '';
+  document.getElementById('nEquip').value = '';
+  document.getElementById('nData').value = hoje();
+  document.getElementById('nCusto').value = '';
+  abrir('overlayManutencao');
+}
+function abrirModalMaquina() {
+  const m = dados.maquina;
+  document.getElementById('qOperadora').value = m ? m.operadora : '';
+  document.getElementById('qSerie').value = m ? m.serie : '';
+  document.getElementById('qApelido').value = m ? m.apelido : '';
+  document.getElementById('btnDesconectar').style.display = m ? 'inline-flex' : 'none';
+  abrir('overlayMaquina');
+}
+
+/* ===========================================================
+   8) SALVAR (assíncrono — nuvem ou local)
+   =========================================================== */
+async function comBotao(id, fn) {
+  const btn = document.getElementById(id);
+  if (btn) btn.disabled = true;
+  try { await fn(); } catch (e) { console.error(e); } finally { if (btn) btn.disabled = false; }
+}
+
+function salvarVenda() {
+  comBotao('btnSalvarVenda', async () => {
+    const produto = document.getElementById('vProduto').value.trim();
+    const valor = parseFloat(document.getElementById('vValor').value);
+    const data = document.getElementById('vData').value;
+    if (!produto || !data || isNaN(valor)) { alert('Preencha produto, data e valor.'); return; }
+    if (valor < 0) { alert('O valor não pode ser negativo.'); return; }
+    const novo = await inserir('vendas', {
+      produto, data, hora: document.getElementById('vHora').value || '00:00',
+      metodo: document.getElementById('vMetodo').value, valor,
+    });
+    dados.vendas.push({ id: novo.id, produto: novo.produto, data: novo.data, hora: novo.hora, metodo: novo.metodo, valor: Number(novo.valor) });
+    persistirSeLocal();
+    fechar('overlayVenda'); render();
+  });
+}
+function salvarMateria() {
+  comBotao('btnSalvarMateria', async () => {
+    const item = document.getElementById('mItem').value.trim();
+    const preco = parseFloat(document.getElementById('mPreco').value);
+    const data = document.getElementById('mData').value;
+    if (!item || !data || isNaN(preco)) { alert('Preencha item, data e preço.'); return; }
+    if (preco < 0) { alert('O preço não pode ser negativo.'); return; }
+    const novo = await inserir('materia_prima', { data, item, preco });
+    dados.materiaPrima.push({ id: novo.id, data: novo.data, item: novo.item, preco: Number(novo.preco) });
+    persistirSeLocal();
+    fechar('overlayMateria'); render();
+  });
+}
+function salvarManutencao() {
+  comBotao('btnSalvarManutencao', async () => {
+    const descricao = document.getElementById('nDescricao').value.trim();
+    const custo = parseFloat(document.getElementById('nCusto').value);
+    const data = document.getElementById('nData').value;
+    if (!descricao || !data || isNaN(custo)) { alert('Preencha a descrição, data e custo.'); return; }
+    if (custo < 0) { alert('O custo não pode ser negativo.'); return; }
+    const novo = await inserir('manutencao', {
+      data, descricao, equipamento: document.getElementById('nEquip').value.trim(), custo,
+    });
+    dados.manutencao.push({ id: novo.id, data: novo.data, descricao: novo.descricao, equipamento: novo.equipamento, custo: Number(novo.custo) });
+    persistirSeLocal();
+    fechar('overlayManutencao'); render();
+  });
+}
+function salvarMaquina() {
+  comBotao('btnSalvarMaquina', async () => {
+    const operadora = document.getElementById('qOperadora').value;
+    if (!operadora) { alert('Selecione a operadora.'); return; }
+    dados.maquina = { operadora, serie: document.getElementById('qSerie').value.trim(), apelido: document.getElementById('qApelido').value.trim() };
+    await persistirMaquina(dados.maquina);
+    fechar('overlayMaquina'); render();
+  });
+}
+function desconectarMaquina() {
+  if (!confirm('Desconectar a máquina? As vendas voltam a ser registradas manualmente.')) return;
+  comBotao('btnSalvarMaquina', async () => {
+    dados.maquina = null;
+    await persistirMaquina(null);
+    fechar('overlayMaquina'); render();
+  });
+}
+
+/* ---------- Excluir ---------- */
+const mapaTabela = { vendas: 'vendas', materiaPrima: 'materia_prima', manutencao: 'manutencao' };
+function excluir(lista, id) {
+  if (!confirm('Excluir este registro?')) return;
+  (async () => {
+    await remover(mapaTabela[lista], id);
+    dados[lista] = dados[lista].filter(x => String(x.id) !== String(id));
+    persistirSeLocal();
+    render();
+  })().catch(e => console.error(e));
+}
+
+/* ---------- Dias (Vendas) ---------- */
+const diasAbertos = new Set();
+function alternarDia(chave) {
+  diasAbertos.has(chave) ? diasAbertos.delete(chave) : diasAbertos.add(chave);
+  render();
+}
+function pillClasse(m) { return ({ 'Pix':'pix','Crédito':'credito','Débito':'debito','Dinheiro':'dinheiro' })[m] || 'dinheiro'; }
+
+/* ===========================================================
+   9) RENDER
+   =========================================================== */
+function render() {
+  // Status da máquina
+  const m = dados.maquina;
+  document.getElementById('dotMaquina').classList.toggle('ligada', !!m);
+  document.getElementById('textoMaquina').textContent = m
+    ? `Máquina conectada${m.apelido ? ' · ' + m.apelido : ' · ' + m.operadora}`
+    : 'Máquina não conectada';
+  document.getElementById('avisoVendas').style.display = m ? 'none' : 'flex';
+
+  // ----- Filtro de mês e ano -----
+  const selMes = document.getElementById('filtroMesNum');
+  const selAno = document.getElementById('filtroAno');
+  const nomesMeses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if (!filtroIniciado) {
+    const todos = [
+      ...dados.vendas.map(v => mesDe(v.data)),
+      ...dados.materiaPrima.map(x => mesDe(x.data)),
+      ...dados.manutencao.map(x => mesDe(x.data)),
+    ].sort();
+    const inicial = todos.length ? todos[todos.length - 1] : hoje().slice(0,7);
+    const [anoIni, mesIni] = inicial.split('-');
+    selMes.innerHTML = nomesMeses.map((nm,i) => `<option value="${String(i+1).padStart(2,'0')}">${nm}</option>`).join('');
+    let anos = '';
+    for (let a = 2024; a <= 2050; a++) anos += `<option value="${a}">${a}</option>`;
+    selAno.innerHTML = anos;
+    selMes.value = mesIni;
+    selAno.value = anoIni;
+    filtroIniciado = true;
+  }
+  mesSelecionado = `${selAno.value}-${selMes.value}`;
+
+  // ----- Resumo (do mês selecionado) -----
+  const vendasMes = dados.vendas.filter(v => mesDe(v.data) === mesSelecionado);
+  const materiaMes = dados.materiaPrima.filter(x => mesDe(x.data) === mesSelecionado);
+  const manutMes = dados.manutencao.filter(x => mesDe(x.data) === mesSelecionado);
+  const faturamento = vendasMes.reduce((s,v) => s + v.valor, 0);
+  const totMateria = materiaMes.reduce((s,x) => s + x.preco, 0);
+  const totManut = manutMes.reduce((s,x) => s + x.custo, 0);
+  const despesas = totMateria + totManut;
+  const lucro = faturamento - despesas;
+
+  document.getElementById('subResumo').textContent = 'Visão geral de ' + nomeMes(mesSelecionado);
+  document.getElementById('rFaturamento').textContent = fmtMoeda(faturamento);
+  document.getElementById('rDespesas').textContent = fmtMoeda(despesas);
+  const elLucro = document.getElementById('rLucro');
+  elLucro.textContent = fmtMoeda(lucro);
+  elLucro.className = 'valor ' + (lucro >= 0 ? 'verde' : 'vermelho');
+  document.getElementById('rMateriaPrima').textContent = fmtMoeda(totMateria);
+  document.getElementById('rManutencao').textContent = fmtMoeda(totManut);
+  document.getElementById('rQtdVendas').textContent = vendasMes.length;
+
+  // ----- Vendas agrupadas por dia -----
+  const porDia = {};
+  vendasMes.forEach(v => (porDia[v.data] = porDia[v.data] || []).push(v));
+  const dias = Object.keys(porDia).sort().reverse();
+  document.getElementById('totalVendasGeral').textContent =
+    `${vendasMes.length} venda(s) em ${nomeMes(mesSelecionado)} · ${fmtMoeda(faturamento)}`;
+
+  const lista = document.getElementById('listaDias');
+  if (dias.length === 0) {
+    lista.innerHTML = `<div class="painel"><div class="vazio">Nenhuma venda neste mês. Clique em "Adicionar venda".</div></div>`;
+  } else {
+    lista.innerHTML = dias.map(dia => {
+      const itens = porDia[dia].slice().sort((a,b) => a.hora.localeCompare(b.hora));
+      const totalDia = itens.reduce((s,v) => s + v.valor, 0);
+      const aberto = diasAbertos.has(dia);
+      return `
+        <div class="dia-bloco ${aberto ? 'aberto' : ''}">
+          <div class="dia-cabecalho" onclick="alternarDia('${dia}')">
+            <div class="esq"><span class="seta">▶</span> Dia ${fmtData(dia)} <span class="badge-qtd">${itens.length} venda(s)</span></div>
+            <div class="total-dia">${fmtMoeda(totalDia)}</div>
+          </div>
+          <div class="dia-corpo">
+            <div class="painel">
+              <table>
+                <thead><tr><th>Hora</th><th>Compra</th><th>Pagamento</th><th>Valor</th><th></th></tr></thead>
+                <tbody>
+                  ${itens.map(v => `
+                    <tr>
+                      <td>${escapar(v.hora)}</td>
+                      <td>${escapar(v.produto)}</td>
+                      <td><span class="pill ${pillClasse(v.metodo)}">${escapar(v.metodo)}</span></td>
+                      <td><strong>${fmtMoeda(v.valor)}</strong></td>
+                      <td style="text-align:right;"><button class="btn-icone" onclick="excluir('vendas','${v.id}')" title="Excluir">🗑</button></td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ----- Tabela matéria-prima -----
+  const tbM = document.getElementById('tabelaMateria');
+  document.getElementById('totalMateria').textContent = `Total no mês: ${fmtMoeda(totMateria)}`;
+  tbM.innerHTML = materiaMes.length === 0
+    ? `<tr><td colspan="4" class="vazio">Nenhuma despesa de matéria-prima neste mês.</td></tr>`
+    : materiaMes.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(x => `
+      <tr>
+        <td>${fmtData(x.data)}</td>
+        <td>${escapar(x.item)}</td>
+        <td><strong>${fmtMoeda(x.preco)}</strong></td>
+        <td style="text-align:right;"><button class="btn-icone" onclick="excluir('materiaPrima','${x.id}')" title="Excluir">🗑</button></td>
+      </tr>`).join('');
+
+  // ----- Tabela manutenção -----
+  const tbN = document.getElementById('tabelaManutencao');
+  document.getElementById('totalManutencao').textContent = `Total no mês: ${fmtMoeda(totManut)}`;
+  tbN.innerHTML = manutMes.length === 0
+    ? `<tr><td colspan="5" class="vazio">Nenhuma manutenção neste mês.</td></tr>`
+    : manutMes.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(x => `
+      <tr>
+        <td>${fmtData(x.data)}</td>
+        <td>${escapar(x.descricao)}</td>
+        <td>${escapar(x.equipamento || '—')}</td>
+        <td><strong>${fmtMoeda(x.custo)}</strong></td>
+        <td style="text-align:right;"><button class="btn-icone" onclick="excluir('manutencao','${x.id}')" title="Excluir">🗑</button></td>
+      </tr>`).join('');
+}
+
+// Fecha modal clicando no fundo
+document.querySelectorAll('.overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('aberto'); }));
+
+// Enter no login
+['loginEmail','loginSenha'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
+});
+
+// Começa
+iniciar();
+</script>
+</body>
+</html>
